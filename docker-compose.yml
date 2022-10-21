@@ -1,0 +1,68 @@
+version: "3.7"
+
+networks:
+  default:
+    driver: bridge
+
+services:
+
+    # PHP Apache Server
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: php:7.2.5-apache
+        container_name: app
+        restart: unless-stopped
+        tty: true
+        environment:
+            SERVICE_NAME: app
+            SERVICE_TAGS: dev
+        working_dir: /var/www/html/
+        volumes:
+            - ./:/var/www/html/
+            - ./DockerFiles/apache/000-default.conf:/etc/apache2/sites-enabled/000-default.conf
+            - ./DockerFiles/php/php.ini:/usr/local/etc/php/php.ini
+        ports:
+            - 80:80
+        networks:
+            - default
+
+    # phpmyadmin
+    phpmyadmin:
+        container_name: phpmyadmin
+        image: phpmyadmin
+        restart: always
+        ports:
+            - 8080:80
+        environment:
+            - PMA_ARBITRARY=1
+            - PMA_HOST=db
+            - PMA_USER=root
+            - PMA_PASSWORD=root
+            - UPLOAD_LIMIT=1024M
+        networks:
+            - default
+
+    # MySQL Server
+    db:
+        image: mysql:5.7.32
+        container_name: db
+        command: mysqld --sql_mode=""
+        restart: unless-stopped
+        tty: true
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_DATABASE: main
+            MYSQL_ROOT_PASSWORD: root
+            SERVICE_TAGS: dev
+            SERVICE_NAME: mysql
+        volumes:
+            - dbdata:/var/lib/mysql/
+        networks:
+            - default
+
+volumes:
+    dbdata:
+        driver: local
